@@ -1,4 +1,3 @@
-
 ### how to implement speech recognition
 
 --- Requiements:
@@ -26,6 +25,7 @@
 2. https://www.ijedr.org/papers/IJEDR1404035.pdf
 3. https://www.youtube.com/watch?v=spUNpyF58BY
 4. https://www.youtube.com/watch?v=IFeCIbljreY
+5. https://jonathan-hui.medium.com/speech-recognition-gmm-hmm-8bb5eff8b196
 
 
 
