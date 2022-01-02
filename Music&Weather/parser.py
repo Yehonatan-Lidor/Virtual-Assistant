@@ -1,5 +1,11 @@
 import pandas as pd
 
+import nltk
+from nltk.corpus import stopwords
+
+import spacy
+from spacy import displacy
+
 class parser:
     def __init__(self, df):
         self.df = df
@@ -29,15 +35,36 @@ class parser:
     def getHowManyWords(self, query):
         return len(query.split(' '))
 
-def check_question(sentence):
-    QUESTIONS = ["how", "when", "where", "what", "whose", "which", "why", "which"]
-    question_list = [] 
-    sentence = sentence.lower()
-    for i in range(len(QUESTIONS)):
-        question_list.append(QUESTIONS[i] in sentence)
-    return question_list
+    def check_question(sentence):
+        QUESTIONS = ("how", "when", "where", "what", "whose", "which", "why", "which")
+        question_list = [] 
+        sentence = sentence.lower()
+        for i in range(len(QUESTIONS)):
+            question_list.append(QUESTIONS[i] in sentence)
+        return question_list
 
-    
+    def count_am_is_are(sentence):
+        WORDS = ("am", "is", "are", "s", "m")
+        sentence_lst = sentence.split(' ')
+        count = 0
+        for word in sentence_lst:
+            if word in WORDS:
+                count += 1
+        return count
+
+    def count_stop_words(sentence):
+        return sum([word in stopwords.words('english') for word in sentence.split(' ')])
+        
+    def count_entities(sentence, ner=spacy.load("en_core_web_sm")):
+        txt = ner(sentence)
+        entities = [0, 0, 0]
+        ENTITIES_LABELS = {"PERSON": 0, "ORG": 1, "GPE": 2}
+        for word in txt:
+            entities[word.label_] += 1
+        return entities
+
+
+
 def main():
     df = pd.read_csv('dataset.csv')
     x = parser(df)
