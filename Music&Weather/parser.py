@@ -28,6 +28,16 @@ class parser:
         return (music, weather)
     def getHowManyWords(self, query):
         return len(query.split(' '))
+
+def check_question(sentence):
+    QUESTIONS = ["how", "when", "where", "what", "whose", "which", "why", "which"]
+    question_list = [] 
+    sentence = sentence.lower()
+    for i in range(len(QUESTIONS)):
+        question_list.append(QUESTIONS[i] in sentence)
+    return question_list
+
+    
 def main():
     df = pd.read_csv('dataset.csv')
     x = parser(df)

@@ -70,9 +70,6 @@ def main():
                columns =['Intent', 'Query', "Param"])
     print(df)
     df.to_csv('dataset.csv')
-
-        
-
                 
 
 
