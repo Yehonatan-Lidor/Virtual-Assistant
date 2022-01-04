@@ -2,11 +2,15 @@ import pandas as pd
 import nltk
 import spacy
 from spacy import displacy
+import truecase
+
+
 
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 nltk.download('averaged_perceptron_tagger')
 nltk.download('stopwords')
+nltk.download('punkt')
 
 class parser:
     def __init__(self, df):
@@ -14,22 +18,65 @@ class parser:
         self.weatherList = []
         self.musicList = []
     def create_table(self):
+        x = self.getMostCommonList()
+        self.weatherList = x[1]
+        self.musicList = x[0]
         data = []
+        ner = spacy.load("en_core_web_sm")
         for i in self.df.itertuples():
+
             item = []
+            item.append(i[3])
+            #ExclamationMark
             if self.isThereExclamationMark(i[3]) == True:
                 item.append(1)
             else:
                 item.append(0)
+            #QuestionMark
             if self.isThereQuestionMark(i[3]) == True:
                 item.append(1)
             else:
                 item.append(0)
-            
-            
+            #countWords
+            item.append(self.getHowManyWords(i[3]))
+            #countChars
+            item.append(self.getHowManyChars(i[3]))
+            #questions 
+            item += self.check_question(i[3])
+            #count am-is-are
+            item.append(self.count_am_is_are(i[3]))
+            #count stop words
+            item.append(self.count_stop_words(i[3]))
+            #count enteties
+            item += self.count_entities(i[3], ner)
+            #common words
+            item += self.commonWords(i[3])
 
+            item.append(i[2])
+
+            data.append(item)
+        return data
+
+
+    def check_question(self,sentence):
+        QUESTIONS = ("how", "when", "where", "what", "whose", "which", "why", "who")
+        question_list = [] 
+        sentence = sentence.lower()
+        for i in range(len(QUESTIONS)):
+            question_list.append(int(QUESTIONS[i] in sentence))
+        return question_list
+    def count_am_is_are(self, sentence):
+        WORDS = ("am", "is", "are", "s", "m")
+        sentence_lst = sentence.split(' ')
+        count = 0
+        for word in sentence_lst:
+            if word in WORDS:
+                count += 1
+        return count
+    def count_stop_words(self, sentence):
+        return sum([word in stopwords.words('english') for word in sentence.split(' ')])
     def count_entities(self, sentence, ner=spacy.load("en_core_web_sm")):
-        txt = ner(sentence)
+        txt = ner(truecase.get_true_case(sentence))
         entities = [0, 0, 0, 0]
         ENTITIES_LABELS = {"PERSON": 0, "ORG": 1, "GPE": 2, "DATE": 3}
         for word in txt.ents:
@@ -121,13 +168,15 @@ class parser:
                 countMusic += 1
         return [countWeather, countMusic]
 def main():
-    l = [1,2,3]
-    b = [4,5]
-    l += b 
-    print(l)
-    #df = pd.read_csv('dataset.csv')
-    #x = parser(df)
-    #x.create_table()
+    df = pd.read_csv('dataset.csv')
+    x = parser(df)
+    list_frame = x.create_table()
+
+    df = pd.DataFrame(list(list_frame),
+            columns =["query", 'ExclamationMark', 'QuestionMark', "countWords", "countChars", 
+               "how", "when", "where", "what", "whose", "which", "why", "who",
+               "count am-is-are", "count stop words", "PERSON", "ORG", "GPE", "DATE", "count weather common", "count music common", "output"])
+    df.to_csv('features.csv')
 
 if __name__ == "__main__":
     main()
