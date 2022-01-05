@@ -8,6 +8,7 @@ import truecase
 
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
+
 nltk.download('averaged_perceptron_tagger')
 nltk.download('stopwords')
 nltk.download('punkt')
@@ -125,16 +126,23 @@ class parser:
         return len(query.split(' '))
     def getHowManyChars(self, query):
         return len(query)
+
     def getPartTag(self, query):
+        VRB = "VBZ,VBP,VBN,VBD,VBG,VB"
+        ADJ = "JJ,JJR,JJS,RB,RBR,RBS"
+        NON = "NN,NNS,NNP,NNPS"
         tokens = nltk.word_tokenize(query)
         pos_tagged_tokens = nltk.pos_tag(tokens)
-        ret = {}
+        ret = {'VRB': 0, 'ADJ': 0, "NON": 0}
         for i in pos_tagged_tokens:
-            if i[1] not in ret:
-                ret[i[1]] = 1
-            elif i[1] in ret:
-                ret[i[1]] +=1
+            if i[1] in VRB:
+                ret['VRB'] += 1
+            elif i[1] in ADJ:
+                ret['ADJ'] += 1
+            elif i[1] in NON:
+                ret['NON'] += 1
         return ret
+        
     def getFilteredText(self,query):
         stop_words = set(stopwords.words('english')) 
         word_tokens = word_tokenize(query)
