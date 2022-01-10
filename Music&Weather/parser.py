@@ -21,6 +21,7 @@ class parser:
         x = self.getMostCommonList()
         self.weatherList = x[1]
         self.musicList = x[0]
+        print(x[0])
         data = []
         ner = spacy.load("en_core_web_sm")
         for i in self.df.itertuples():
@@ -52,12 +53,19 @@ class parser:
             #common words
             item += self.commonWords(i[3])
 
+            #part tag:
+            tags = self.getPartTag(i[3])
+            #add verb
+            item.append(tags["VRB"])
+            #add adj
+            item.append(tags["ADJ"])
+            #add noun
+            item.append(tags["NON"])
+
             item.append(i[2])
 
             data.append(item)
         return data
-
-
     def check_question(self,sentence):
         QUESTIONS = ("how", "when", "where", "what", "whose", "which", "why", "who")
         question_list = [] 
@@ -126,15 +134,21 @@ class parser:
     def getHowManyChars(self, query):
         return len(query)
     def getPartTag(self, query):
+        VRB = "VBZ,VBP,VBN,VBD,VBG,VB"
+        ADJ = "JJ,JJR,JJS,RB,RBR,RBS"
+        NON = "NN,NNS,NNP,NNPS"
         tokens = nltk.word_tokenize(query)
         pos_tagged_tokens = nltk.pos_tag(tokens)
-        ret = {}
+        ret = {'VRB': 0, 'ADJ': 0, "NON": 0}
         for i in pos_tagged_tokens:
-            if i[1] not in ret:
-                ret[i[1]] = 1
-            elif i[1] in ret:
-                ret[i[1]] +=1
+            if i[1] in VRB:
+                ret['VRB'] += 1
+            elif i[1] in ADJ:
+                ret['ADJ'] += 1
+            elif i[1] in NON:
+                ret['NON'] += 1
         return ret
+
     def getFilteredText(self,query):
         stop_words = set(stopwords.words('english')) 
         word_tokens = word_tokenize(query)
@@ -175,7 +189,7 @@ def main():
     df = pd.DataFrame(list(list_frame),
             columns =["query", 'ExclamationMark', 'QuestionMark', "countWords", "countChars", 
                "how", "when", "where", "what", "whose", "which", "why", "who",
-               "count am-is-are", "count stop words", "PERSON", "ORG", "GPE", "DATE", "count weather common", "count music common", "output"])
+               "count am-is-are", "count stop words", "PERSON", "ORG", "GPE", "DATE", "count music common", "count weather common" , "VRB", "ADJ","NON", "output"])
     df.to_csv('features.csv')
 
 if __name__ == "__main__":
