@@ -1,7 +1,7 @@
 import pandas as pd
 
 def main():
-    df = pd.read_csv('messaging_test.csv')
+    df = pd.read_csv('messaging_eval.csv')
     df = df.drop(columns=['domain'])
     parsed = []
     a  = ''
