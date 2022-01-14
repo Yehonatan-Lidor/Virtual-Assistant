@@ -38,7 +38,7 @@ def truecasing_by_pos(input_text):
 
 def main():
 
-    text = "Isle Wight"
+    text = "did Isle Wight become island"
 
     count_entities(text)
     print("===============")
