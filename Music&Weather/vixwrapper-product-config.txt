@@ -1,0 +1,33 @@
+#@Version-Info
+#
+# VixAllProducts revision mapping for Workstation/Player
+#
+# This file translates product version specifications into the appropriate Vix
+# implementations.
+#
+# Each @Version-Info line has 5 white-space seperated entries:
+#
+#    provider-type: ws, esx, viserver, etc
+#    apiVersion: the apiVersion supported, as passed in from VixHost_Connect()
+#    ipc-type: none, vmdb, vmodl, cim
+#    product-version: the product version string
+#
+#    implementation-directory: the path to the library that implements the
+#          version described by the first 4 parameters
+#
+#
+# The configuration is based on the first 4 fields, which describe
+# the product.  The 5th field is the location.  To force it to try
+# multiple location, the same configuration can be repeated.  Note that
+# list is built in LIFO order, so the latest entry in the configuration
+# will be the first used.  If for some reason that value fails, it will
+# continue through any other matches.
+
+
+# Workstation and Player 14.0.0
+ws        19  vmdb  14.0.0 Workstation-14.0.0
+player    19  vmdb  14.0.0 Workstation-14.0.0
+ws        19  vmdb   e.x.p Workstation-14.0.0
+player    19  vmdb   e.x.p Workstation-14.0.0
+
+# EOF

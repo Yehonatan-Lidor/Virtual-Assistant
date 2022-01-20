@@ -4,8 +4,8 @@ import nlpaug.augmenter.sentence as nas
 import pandas as pd
 from transformers.utils.dummy_pt_objects import PegasusForCausalLM
 def add(text):
-    aug = naw.ContextualWordEmbsAug(
-        model_path='bert-base-uncased', action="insert")
+    aug = naw.SynonymAug(aug_src='wordnet')
+
     augmented_text = aug.augment(text)
     return augmented_text
 
@@ -13,6 +13,7 @@ def main():
     count = 0
     df = pd.read_csv('final_dataset.csv')
     final = []
+
     for i in df.itertuples():
         if i[2] == "GET_MESSAGE":
             count += 1

@@ -1,11 +1,15 @@
 import pandas as pd
 import nltk
+import warnings
+warnings.filterwarnings("ignore")
 import spacy
 from spacy import displacy
 import truecase
+import numpy as np
+import tensorflow as tf
 
-
-
+from sklearn.preprocessing import StandardScaler
+import pickle
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
@@ -23,6 +27,18 @@ class parser:
         self.musicList = []
         self.getList = []
         self.sendList = []
+        """
+        x = self.getMostCommonList()
+        self.getList = x[2]
+        self.weatherList = x[1]
+        self.musicList = x[0]
+        self.sendList = x[3]
+        """
+
+        self.getList = ['world', 'maine', 'thread', 'display', 'launch', 'pull', 'view', 'yesterday', 'sent', 'today', 'group', 'read', 'new', 'show', 'request', 'chat']
+        self.weatherList = ['second', 'cold', 'hour', 'chilly', 'island', 'one', '1', 'warm', 'colder', 'area', 'hot', 'pm', 'minute', 'national', 'week', 'state', 'park', 'current', 'like', 'forecast', 'weather']
+        self.musicList = ['spotify', 'youtube', 'deezer', 'use', 'listen', 'lastfm', 'groove', 'shark', 'zvooq', 'tune', 'twenty', 'itunes', 'netflix', 'google', 'top', 'album', 'playlist', 'track', 'hear', 'song', 'music', 'play']
+        self.sendList = ['dinner', 'start', 'birthday', 'tonight', 'tomorrow', 'house', 'late', 'time', 'mom', 'party', 'meet', 'asking', 'let', 'know', 'ask', 'send']
     def tests(self): 
         x = self.getMostCommonList()
         print(x)
@@ -88,7 +104,7 @@ class parser:
             item.append(val)
 
             #count text and message and please and see
-            val = i[3].lower().count('tell') + i[3].lower().count('going') + i[3].lower().count('message') + i[3].lower().count('see')
+            val = i[3].lower().count('tell') + i[3].lower().count('going') + + i[3].lower().count('see') # +i[3].lower().count('message')
             item.append(val)
 
 
@@ -272,16 +288,101 @@ class parser:
             if i in self.getList:
                 countGet += 1
         return [countMusic, countWeather, countGet, countSend]
+    def run_model(self, query,sc, new_model, ner = spacy.load("en_core_web_lg")):
+        #create array data
+        item = []
+        #ExclamationMark
+        if self.isThereExclamationMark(query) == True:
+            item.append(1)
+        else:
+            item.append(0)
+        #QuestionMark
+        if self.isThereQuestionMark(query) == True:
+            item.append(1)
+        else:
+            item.append(0)
+        #countWords
+        item.append(self.getHowManyWords(query))
+        #questions 
+        item += self.check_question(query)
+        #count enteties
+        item += self.count_entities(query, ner)
+        #common words
+        item += self.commonWords(query)
+
+        #part tag:
+        tags = self.getPartTag(query)
+        #add verb
+        item.append(tags["VRB"])
+        #add adj
+        item.append(tags["ADJ"])
+        #add noun
+        item.append(tags["NON"])
+
+        #count tell and going
+        val = query.lower().count('tell') + query.lower().count('going')
+        item.append(val)
+
+        #count text and message and please and see
+        val = query.lower().count('tell') + query.lower().count('going')  + query.lower().count('see') # +  query.lower().count('message')
+        item.append(val)
+        
+
+        a = np.array(item)
+        a = a.astype('float32')
+        a = sc.transform([a])
+        print(a)
+        #train the model
+        res = new_model.predict(a)
+        res = res[0]
+        sum = 0.0
+        count = 0 
+        biggest = res[0]
+        choose = 0
+        for i in res:
+            if i > biggest:
+                biggest = i
+                choose = count
+
+            count += 1
+            sum += i
+        if choose == 0:
+            return "SEARCH"
+        elif choose == 1:
+            return "GET_MESSAGE"
+        elif choose == 2:
+            return "SEND_MESSAGE"
+        elif choose == 3:
+            return "GetWeather"
+        else:
+            return "PlayMusic"
+
+
+
+
 def main():
-    df = pd.read_csv('final_dataset.csv')
+    ner = spacy.load("en_core_web_lg")
+    new_model = tf.keras.models.load_model('saved_model/my_model')
+    sc = StandardScaler()
+    sc = pickle.load(open('scaler.pkl','rb'))
+    df = pd.read_csv('aug_final_dataset.csv')
+    #def run_model(self, query,sc, new_model, ner = spacy.load("en_core_web_lg")):
+    text = ""
+    print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
+    text = str(input('Enter a question: \n'))
     x = parser(df)
+    while(text != "EXIT"):
+        print(text)
+        print(x.run_model(text,sc,new_model,ner))
+        text = str(input('Enter a question:'))
+    """
     list_frame = x.create_table()
 
     df = pd.DataFrame(list(list_frame),
             columns =["query", 'ExclamationMark', 'QuestionMark', "countWords", "countChars", 
                "how", "when", "where", "what", "whose", "which", "why", "who",
                "count am-is-are", "count stop words", "PERSON", "ORG", "GPE", "DATE", "count music common", "count weather common" ,"count get common", "count send common" , "VRB", "ADJ","NON","common_t_g","common_s_p_m_t", "output"])
-    df.to_csv('features.csv')
+    df.to_csv('features_f.csv')"""
 
 if __name__ == "__main__":
     main()

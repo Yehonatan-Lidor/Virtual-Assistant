@@ -5,12 +5,27 @@ import truecase
 import nltk
 from nltk.tokenize import word_tokenize
 from nltk.tag import pos_tag
+import pandas as pd
+
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
 
 def count_entities(sentence, ner=spacy.load("en_core_web_lg")):
     txt = ner(truecase.get_true_case(sentence))
-    entities = [0, 0, 0, 0]
+    ret = []
     for word in txt.ents:
-        print(word)
+        if word.label_ == "PERSON":
+            ret.append("PERSON(" + str(word) + ")")
+        elif word.label_ == "ORG":
+            ret.append("ORG(" + str(word) + ")")
+        elif word.label_ == "GPE":
+            ret.append("GPE(" + str(word) + ")")
+        elif word.label_ == "DATE":
+            ret.append("DATE(" + str(word) + ")")
+
+    if len(ret) == 0:
+        return None
+    return ret
 from nltk.tokenize import sent_tokenize
 import re
 def truecasing_by_sentence_segmentation(input_text):
@@ -37,34 +52,51 @@ def truecasing_by_pos(input_text):
 
 
 def main():
+    ner = spacy.load("en_core_web_lg")
+    df = pd.read_csv('qa.csv')
+    list_ner = []
+    rest = []
+    for sample in df.itertuples():
+        end = count_entities(sample[1], ner)
+        if end == None:
+            rest.append(sample[1])
+        else:
+            list_ner.append([sample[1], end])
+    df_books = pd.read_csv('books.csv', on_bad_lines='skip')
+    books_w_stop = []
+    new_rest = []
+    for i in rest:
+        for j in df_books.itertuples():
+                if len(j[2].split(" ")) > 3 and i.lower().find(j[2].lower()) != -1 and i not in books_w_stop:
+                    books_w_stop.append([i, j[2]])
+                elif i not in rest:
+                    new_rest.append(i)
 
-    text = "did Isle Wight become island"
+    print(books_w_stop)            
+    print(len(books_w_stop))
 
-    count_entities(text)
-    print("===============")
-
-    count_entities(truecase.get_true_case(text))
-    print("===============")
+    print(new_rest)
+    print(len(new_rest))
 
 
-    x = truecasing_by_sentence_segmentation(text)
-    print(x)
-    x = truecasing_by_pos(x)
-    print(x)
-    count_entities(x)
-    print("===============")
+
+
+
+
+
+    print("----------------------------------")
+    print("----------------------------------")
+    print("----------------------------------")
+    print("----------------------------------")
+    print("----------------------------------")
+    print("----------------------------------")
+    print("----------------------------------")
+    print("----------------------------------")
+    print("----------------------------------")
+    print("----------------------------------")
 
     
-    #ner = spacy.load("en_core_web_sm")
-    #df = pd.read_csv('qa.csv')
-    #count = 0
-    #for i in df.itertuples():
-    #    print(i[1])
-    #    count_entities(i[1], ner)
-    #    print('"""""""""""""""')
-    #    count += 1
-    #    if count == 12:
-    #        break
+        
 
 
 

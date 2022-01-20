@@ -1,6 +1,9 @@
 import pandas as pd
 
 
+
+
+
 def main():
     #load data
     filter_one = []
@@ -31,8 +34,8 @@ def main():
             new_out = []
             for i in range(len(items_out)):
                 if items_out[i] != "O":
-                    new_out.append(items_in[i])
-            filter_two.append([item[0], item[1]," ".join(new_out)])
+                    new_out.append(items_out[i]+ "(" + items_in[i] +"),")
+            filter_two.append([item[0], item[1],item[2]," ".join(new_out)])
         else:
             if "and then" in item[1].lower():
                 new_label = item[0].split('#')
@@ -44,14 +47,19 @@ def main():
                 out_options = item[2].strip().split(' ')
                 first = []
                 second = []
+                f = []
+                s = []
                 for i in range(len(out_options)):
-                    if out_options[i] != 'O':
-                        if i < size:
-                            first.append(list_words[i])
-                        if i > size and i < len(list_words):
-                            second.append(list_words[i])
-                end_item_first = [new_label[0],new_in[0]," ".join(first)]
-                end_item_second = [new_label[1],new_in[1]," ".join(second)]
+                    if i < size:
+                        f.append(out_options[i])
+                        if out_options[i] != 'O':
+                            first.append(out_options[i] + "(" + list_words[i]+ "),")
+                    if i > size and i < len(list_words):
+                        s.append(out_options[i])
+                        if out_options[i] != 'O':
+                            second.append(out_options[i] + "(" + list_words[i]+ "),")
+                end_item_first = [new_label[0],new_in[0]," ".join(f), " ".join(first)]
+                end_item_second = [new_label[1],new_in[1]," ".join(s), " ".join(second)]
                 filter_two.append(end_item_first)
                 filter_two.append(end_item_second)
     #filter 3 - delete items with the wrong intent
@@ -65,15 +73,19 @@ def main():
             count += 1
     print(count)
     print(len(filter_three)- count)
+    """
+    [
+        [0,1,2,3],
+        [6,4,2,4]
+    
 
+    ]
+    """
     df = pd.DataFrame(list(filter_three),
-               columns =['Intent', 'Query', "Param"])
+               columns =['Intent', 'Query', "Param1", "Param2"])
     print(df)
-    df.to_csv('dataset.csv')
+    df.to_csv('param1.csv')
                 
-
-
-
 
 if __name__ == "__main__":
     main()
