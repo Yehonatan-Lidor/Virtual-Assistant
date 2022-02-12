@@ -1,10 +1,11 @@
 from cmath import tanh
 from random import randint
-from numpy import float32, matrix
+from tkinter import W
+from numpy import dtype, float32, matrix
 import numpy as np
 from numpy.random import rand
 import torch
-from torch import nn, sigmoid
+from torch import gradient, nn, sigmoid
 from torch.utils.data import DataLoader
 import math
 
@@ -14,6 +15,8 @@ import math
 
 
 class activation_functions:
+    def softmax(self, vector):
+        return (torch.exp(vector)) / (torch.sum( torch.exp(vector) ))
     def relu(self, vector):
         vector[vector < 0] = 0
         return vector
@@ -25,7 +28,7 @@ class activation_functions:
 class ANN:
     def __init__(self, hl_nn, num_inputs, num_outputs):
         self.num_inputs = num_inputs
-        self.num_inputs = num_outputs
+        self.num_outputs = num_outputs
         s = self.create_ann(hl_nn=hl_nn, num_inputs=num_inputs, num_outputs=num_outputs)
         self.matrix = s[0]
         self.activations = s[1]
@@ -70,7 +73,8 @@ class ANN:
         ann_list.append(x)
 
         # init all the wrights by the xavier method
-        
+        print()
+        print(ann_list)
         matrix = self.init_weights(ann_list, num_inputs)
 
         l = []
@@ -80,13 +84,11 @@ class ANN:
         return matrix , l
     #foreward the model
     def foreward(self, vector_inputs):
-        print(vector_inputs)
-        print(self.matrix)
         AF = activation_functions()
         calc = vector_inputs
+        af = 18
         for index in range(len(self.matrix)):
             af = self.activations[index]
-            af= 18
             calc = torch.matmul(calc , self.matrix[index])
             if af == 0:
                 calc = AF.relu(calc)
@@ -96,43 +98,76 @@ class ANN:
                 calc = AF.tanh(torch.matmul(calc, self.matrix[index]))
         return calc
     def loss(self, y_pred, y):
-        return torch.mean((y_pred - y)**2)
+        sum = torch.sum(y * torch.log(y_pred)) / self.num_outputs * -1
+        return sum
     def train(self, lr, data, epochs, batch):
         for epoch in epochs:
             #split to batch
-            list_data = [] #list of all data splitted to the batch size
-            for sample in list_data:
+            x_train = []
+            y_train = []            
+            y_pred = []
+            for sample in x_train:
                 pass
                 #foreward:
-                
-                #calc loss
+                y_pred.append(self.foreward(sample))    
 
-                #calc gradient
 
-                #update weights using back-prop
+            #calc loss
+            loss = self.loss(y_pred, y_train)
+            #calc gradient
+            loss.backward()
+            #update weights using back-prop
+
+
 
         
 
 
 
 def main():
-    pass
-    #print(a.shape)
-    #print(b)
-    #print(b.shape)
-    #print(torch.mm(a,b))
-    AF = activation_functions()
-    A = ANN([[1, 0]], 1, [1, 0])
-    a = torch.tensor([2], dtype=torch.float32)
-    print("\n\n")
-    print(A.foreward(a))
-    #t = torch.randn((3,2))
-    #print(t)
-    #print("\n\n")
-    #print(torch.transpose(t,1,0))
-    """
-    1 * 
-    """
+    X = torch.tensor([1], dtype=torch.float32)
+    Y = torch.tensor([2], dtype=torch.float32)
+
+    W = torch.tensor([100.0], dtype=torch.float32, requires_grad=True)
+
+    # Training
+    learning_rate = 0.01
+    n_iters = 1000
+
+    for epoch in range(n_iters):
+        # predict = forward pass
+        y_pred = W * X
+
+        # loss
+       # m = torch.nn.MSELoss(y_pred, Y)
+        l = torch.sum(Y * torch.log(y_pred)) * -1
+        # calculate gradients = backward pass
+        l.backward()
+
+        # update weights
+        #w.data = w.data - learning_rate * w.grad
+        with torch.no_grad():
+            W -= learning_rate * W.grad
+        
+        # zero the gradients after updating
+        W.grad.zero_()
+
+        print(f'epoch {epoch+1}: w = {W.item():.3f}, loss = {l.item():.8f}, accuracy: {y_pred / Y * 100}')
+
+        
+
+
+
+
+
+    
+
+
+
+        
+
+
+
 
 
 
