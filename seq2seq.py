@@ -59,28 +59,25 @@ class ANN:
         count = 0
         for index, i in enumerate(hl_nn):
             if index == 0:
-                x = torch.zeros(num_inputs, i[0])
-                print(x[0])
+                x = torch.zeros(num_inputs, i[0], dtype=torch.float32, requires_grad=True)
                 ann_list.append(x)
-                print(i[0])
                 count = i[0]
             else:
-                x = torch.zeros(count, i[0])
+                x = torch.zeros(count, i[0], dtype=torch.float32, requires_grad=True)
                 ann_list.append(x)
                 count = i[0]
-            print("\n")
-        x = torch.zeros(count, num_outputs[0])
+        x = torch.zeros(count, num_outputs[0], dtype=torch.float32, requires_grad=True)
         ann_list.append(x)
 
         # init all the wrights by the xavier method
-        print()
-        print(ann_list)
         matrix = self.init_weights(ann_list, num_inputs)
 
         l = []
         for i in hl_nn:
             l.append(i[1])
         l.append(num_outputs[1])
+
+        print(matrix)
         return matrix , l
     #foreward the model
     def foreward(self, vector_inputs):
@@ -96,64 +93,33 @@ class ANN:
                 calc = AF.sigmoid(calc)
             if af == 2:
                 calc = AF.tanh(torch.matmul(calc, self.matrix[index]))
-        return calc
+        return AF.softmax(calc)
     def loss(self, y_pred, y):
         sum = torch.sum(y * torch.log(y_pred)) / self.num_outputs * -1
         return sum
-    def train(self, lr, data, epochs, batch):
-        for epoch in epochs:
-            #split to batch
-            x_train = []
-            y_train = []            
-            y_pred = []
-            for sample in x_train:
-                pass
-                #foreward:
-                y_pred.append(self.foreward(sample))    
-
-
-            #calc loss
-            loss = self.loss(y_pred, y_train)
-            #calc gradient
-            loss.backward()
-            #update weights using back-prop
-
-
-
-        
-
+    def update(self, lr, value):
+        with torch.no_grad():
+            self.matrix[0] = self.matrix[0] - lr * self.matrix[0].grad
 
 
 def main():
-    X = torch.tensor([1], dtype=torch.float32)
-    Y = torch.tensor([2], dtype=torch.float32)
 
-    W = torch.tensor([100.0], dtype=torch.float32, requires_grad=True)
-
+    x = torch.tensor([3], dtype=torch.float32)
+    y = torch.tensor([0.0, 1, 0.0], dtype=torch.float32)
+    w = torch.tensor([0.3, 0.5, 0.1], dtype=torch.float32, requires_grad=True)
     # Training
-    learning_rate = 0.01
-    n_iters = 1000
+    learning_rate = 0.1
+    n_iters = 100000
 
     for epoch in range(n_iters):
         # predict = forward pass
-        y_pred = W * X
-
-        # loss
-       # m = torch.nn.MSELoss(y_pred, Y)
-        l = torch.sum(Y * torch.log(y_pred)) * -1
-        # calculate gradients = backward pass
+        y_pred = (torch.exp(x * w)) / (torch.sum( torch.exp(x * w) ))
+        l = torch.sum(y * torch.log(y_pred)) * -1
         l.backward()
-
-        # update weights
-        #w.data = w.data - learning_rate * w.grad
         with torch.no_grad():
-            W -= learning_rate * W.grad
-        
-        # zero the gradients after updating
-        W.grad.zero_()
-
-        print(f'epoch {epoch+1}: w = {W.item():.3f}, loss = {l.item():.8f}, accuracy: {y_pred / Y * 100}')
-
+            w -= learning_rate * w.grad
+        w.grad.zero_()
+        print(f'epoch {epoch+1}, accuracy: {y_pred}')
         
 
 
