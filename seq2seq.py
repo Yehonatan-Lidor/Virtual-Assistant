@@ -4,6 +4,7 @@ from tkinter import W
 from numpy import dtype, float32, matrix
 import numpy as np
 from numpy.random import rand
+from sqlalchemy import true
 import torch
 from torch import gradient, nn, sigmoid
 from torch.utils.data import DataLoader
@@ -104,22 +105,23 @@ class ANN:
 
 def main():
 
-    x = torch.tensor([3], dtype=torch.float32)
+    x = torch.tensor([[3],[2]], dtype=torch.float32)
     y = torch.tensor([0.0, 1, 0.0], dtype=torch.float32)
-    w = torch.tensor([0.3, 0.5, 0.1], dtype=torch.float32, requires_grad=True)
+    w = torch.tensor([[0.3, 0.5] , [0.1, 0.4], [0.3, 0.7]], dtype=torch.float32, requires_grad=True)
     # Training
+    print(x.shape)
+    print(w.shape)
     learning_rate = 0.1
-    n_iters = 100000
-
+    n_iters = 100
     for epoch in range(n_iters):
         # predict = forward pass
-        y_pred = (torch.exp(x * w)) / (torch.sum( torch.exp(x * w) ))
-        l = torch.sum(y * torch.log(y_pred)) * -1
+        y_pred = (torch.exp(torch.matmul(w,x))) / (torch.sum( torch.exp(torch.matmul(w,x)) ))
+        l = torch.sum(torch.matmul(y , torch.log(y_pred)))* -1
         l.backward()
         with torch.no_grad():
             w -= learning_rate * w.grad
         w.grad.zero_()
-        print(f'epoch {epoch+1}, accuracy: {y_pred}')
+        print(f'epoch {epoch+1}, accuracy: {torch.transpose(y_pred, 0 , 1)}')
         
 
 
