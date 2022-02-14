@@ -90,7 +90,15 @@ class ANN:
     def loss(self, y_pred, y):
         sum = torch.sum(torch.matmul(y , torch.log(y_pred))) * -1
         return sum
+    def matrix_error(self, y_pred, y):
+        return torch.argmax(y) == torch.argmax(y_pred)
+
+        
+
+        
     def train(self, epoch, lr, inputs, y):
+            count = 0
+            correct = 0
             #loop
             for i in range(epoch):
                 #foreward
@@ -101,17 +109,23 @@ class ANN:
                 loss.backward()
                 with torch.no_grad():
                     self.matrix -= lr * self.matrix.grad
-                print(self.matrix.grad)
-
+                self.matrix.grad.zero_()
                 #print epoch
+                with torch.no_grad():
+                    count += 1
+                    if(self.matrix_error(y_pred, y)):
+                        correct += 1
+                    print(f'epoch {i+1}, accuracy: {correct/ count}')
+
+
 
 
 
 
 def main():
-    A = ANN([], 3,[2,1])
-    x = torch.tensor([3,2,1], dtype=torch.float32)
-    y = torch.tensor([1,0], dtype=torch.float32)
+    A = ANN([], 3,[3,1])
+    x = torch.tensor([3,-2,1], dtype=torch.float32)
+    y = torch.tensor([1,0, 0], dtype=torch.float32)
     A.train(100, 0.01,x,y)
 
         
