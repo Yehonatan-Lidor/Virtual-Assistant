@@ -36,17 +36,18 @@ class ANN:
         
     def init_weights(self, matrix, num_inputs):
         #init each vector of weights
-        for inx, i  in enumerate(matrix):
-            if inx == 0:
-                lower, upper = (-1 * math.sqrt(6) / math.sqrt(num_inputs + len(matrix[inx]))), (math.sqrt(6) / math.sqrt(num_inputs + len(matrix[inx])))
-            else:
-                lower, upper = (-1 * math.sqrt(6) / math.sqrt(len(matrix[inx -1]) + len(matrix[inx]))), (math.sqrt(6) / math.sqrt(len(matrix[inx -1]) + len(matrix[inx])))
-            count = 0
-            while(count < len(i)):
-                rand_number = rand(1)
-                weight = lower + (upper - lower) * rand_number
-                matrix[inx][count] = weight[0]
-                count += 1
+        with torch.no_grad():
+            for inx, i  in enumerate(matrix):
+                if inx == 0:
+                    lower, upper = (-1 * math.sqrt(6) / math.sqrt(num_inputs + len(matrix[inx]))), (math.sqrt(6) / math.sqrt(num_inputs + len(matrix[inx])))
+                else:
+                    lower, upper = (-1 * math.sqrt(6) / math.sqrt(len(matrix[inx -1]) + len(matrix[inx]))), (math.sqrt(6) / math.sqrt(len(matrix[inx -1]) + len(matrix[inx])))
+                count = 0
+                while(count < len(i)):
+                    rand_number = rand(1)
+                    weight = lower + (upper - lower) * rand_number
+                    matrix[inx][count] = weight[0]
+                    count += 1
         return matrix
             
     def create_ann(self, hl_nn, num_inputs, num_outputs):
@@ -58,18 +59,20 @@ class ANN:
         ##crate a represntation of the hidden layers - with list of tensors
         ann_list = list()
         count = 0
-        for index, i in enumerate(hl_nn):
-            if index == 0:
-                x = torch.zeros(num_inputs, i[0], dtype=torch.float32, requires_grad=True)
-                ann_list.append(x)
-                count = i[0]
-            else:
-                x = torch.zeros(count, i[0], dtype=torch.float32, requires_grad=True)
-                ann_list.append(x)
-                count = i[0]
-        x = torch.zeros(count, num_outputs[0], dtype=torch.float32, requires_grad=True)
-        ann_list.append(x)
-
+        if len(hl_nn) != 0:
+            for index, i in enumerate(hl_nn):
+                if index == 0:
+                    x = torch.zeros(num_inputs, i[0], dtype=torch.float32, requires_grad=True)
+                    ann_list.append(x)
+                    count = i[0]
+                else:
+                    x = torch.zeros(count, i[0], dtype=torch.float32, requires_grad=True)
+                    ann_list.append(x)
+                    count = i[0]
+            x = torch.zeros(count, num_outputs[0], dtype=torch.float32, requires_grad=True)
+            ann_list.append(x)
+        else:
+            ann_list = torch.zeros(num_inputs, num_outputs[0], dtype=torch.float32, requires_grad=True)
         # init all the wrights by the xavier method
         matrix = self.init_weights(ann_list, num_inputs)
 
@@ -78,65 +81,40 @@ class ANN:
             l.append(i[1])
         l.append(num_outputs[1])
 
-        print(matrix)
         return matrix , l
     #foreward the model
     def foreward(self, vector_inputs):
         AF = activation_functions()
-        calc = vector_inputs
-        af = 18
-        for index in range(len(self.matrix)):
-            af = self.activations[index]
-            calc = torch.matmul(calc , self.matrix[index])
-            if af == 0:
-                calc = AF.relu(calc)
-            if af == 1:
-                calc = AF.sigmoid(calc)
-            if af == 2:
-                calc = AF.tanh(torch.matmul(calc, self.matrix[index]))
+        calc = torch.matmul(vector_inputs, self.matrix)
         return AF.softmax(calc)
     def loss(self, y_pred, y):
-        sum = torch.sum(y * torch.log(y_pred)) / self.num_outputs * -1
+        sum = torch.sum(torch.matmul(y , torch.log(y_pred))) * -1
         return sum
-    def update(self, lr, value):
-        with torch.no_grad():
-            self.matrix[0] = self.matrix[0] - lr * self.matrix[0].grad
+    def train(self, epoch, lr, inputs, y):
+            #loop
+            for i in range(epoch):
+                #foreward
+                y_pred = self.foreward(inputs)
+                #calc loss
+                loss = self.loss(y_pred, y)
+                #backward
+                loss.backward()
+                with torch.no_grad():
+                    self.matrix -= lr * self.matrix.grad
+                print(self.matrix.grad)
+
+                #print epoch
+
+
 
 
 def main():
-
-    x = torch.tensor([[3],[2]], dtype=torch.float32)
-    y = torch.tensor([0.0, 1, 0.0], dtype=torch.float32)
-    w = torch.tensor([[0.3, 0.5] , [0.1, 0.4], [0.3, 0.7]], dtype=torch.float32, requires_grad=True)
-    # Training
-    print(x.shape)
-    print(w.shape)
-    learning_rate = 0.1
-    n_iters = 100
-    for epoch in range(n_iters):
-        # predict = forward pass
-        y_pred = (torch.exp(torch.matmul(w,x))) / (torch.sum( torch.exp(torch.matmul(w,x)) ))
-        l = torch.sum(torch.matmul(y , torch.log(y_pred)))* -1
-        l.backward()
-        with torch.no_grad():
-            w -= learning_rate * w.grad
-        w.grad.zero_()
-        print(f'epoch {epoch+1}, accuracy: {torch.transpose(y_pred, 0 , 1)}')
-        
-
-
-
-
-
-    
-
-
+    A = ANN([], 3,[2,1])
+    x = torch.tensor([3,2,1], dtype=torch.float32)
+    y = torch.tensor([1,0], dtype=torch.float32)
+    A.train(100, 0.01,x,y)
 
         
-
-
-
-
 
 
 if __name__ == "__main__":
