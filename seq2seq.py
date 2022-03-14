@@ -1,5 +1,5 @@
 from cmath import tanh
-from random import randint
+from random import randint, shuffle
 from tkinter import W
 from numpy import dtype, float32, matrix
 import numpy as np
@@ -30,6 +30,27 @@ class activation_functions:
     def tanh(self, vector):
         return (torch.exp(vector) - torch.exp(-1 * vector)) / (torch.exp(vector) + torch.exp(-1 * vector))
 
+
+def split_dataset(x,y, batch_size, num_epochs):
+    dataset = [] 
+    ds_len = len(x) # get size of dataset
+    batch_count = 0 
+    batch = []   
+    for _ in range(num_epochs):
+        epoch = []
+        batch = []
+        batch_size = 0
+        for i in shuffle(list(range(0, ds_len))): # go over random list of all indexes in the
+            if batch_count < batch_size:
+                batch_size += 1
+                batch.append( [x[i], y[i]] )
+            else:
+                epoch.append(batch)
+                batch = []
+                batch_size = 0
+        dataset.append(epoch)
+    return dataset
+        
 class ANN:
     def __init__(self, hl_nn, num_inputs, num_outputs):
         self.num_inputs = num_inputs
@@ -63,6 +84,20 @@ class ANN:
         ##crate a represntation of the hidden layers - with list of tensors
         ann_list = list()
         count = 0
+<<<<<<< HEAD
+        for index, i in enumerate(hl_nn):
+            if index == 0:
+                x = torch.zeros(num_inputs, i[0], dtype=torch.float32, requires_grad=True)
+                ann_list.append(x)
+                count = i[0]
+            else:
+                x = torch.zeros(count, i[0], dtype=torch.float32, requires_grad=True)
+                ann_list.append(x)
+                count = i[0]
+        x = torch.zeros(count, num_outputs[0], dtype=torch.float32, requires_grad=True)
+        ann_list.append(x)
+
+=======
         if len(hl_nn) != 0:
             for index, i in enumerate(hl_nn):
                 if index == 0:
@@ -77,6 +112,7 @@ class ANN:
             ann_list.append(x)
         else:
             ann_list = torch.zeros(num_inputs, num_outputs[0], dtype=torch.float32, requires_grad=True)
+>>>>>>> 35fe4bffd882a49526469ea8be846cb5f856d695
         # init all the wrights by the xavier method
         matrix = self.init_weights(ann_list, num_inputs)
 
@@ -85,9 +121,60 @@ class ANN:
             l.append(i[1])
         l.append(num_outputs[1])
 
+<<<<<<< HEAD
+        print(matrix)
+=======
+>>>>>>> 35fe4bffd882a49526469ea8be846cb5f856d695
         return matrix , l
+    
     #foreward the model
     def foreward(self, vector_inputs):
+<<<<<<< HEAD
+=======
+        AF = activation_functions()
+<<<<<<< HEAD
+        calc = vector_inputs
+        af = 18
+        for index in range(len(self.matrix)):
+            af = self.activations[index]
+            calc = torch.matmul(calc , self.matrix[index])
+            if af == 0:
+                calc = AF.relu(calc)
+            if af == 1:
+                calc = AF.sigmoid(calc)
+            if af == 2:
+                calc = AF.tanh(torch.matmul(calc, self.matrix[index]))
+        return AF.softmax(calc)
+    
+    def loss(self, y_pred, y):
+        sum = torch.sum(torch.matmul(y,torch.log(y_pred))) * -1
+        return sum
+    
+    def backward(self, x, y):
+        lr = 0.1
+        y_pred = self.foreward(x)
+        l = self.loss(y_pred, y)
+        l.backward()
+        with torch.no_grad():
+            self.matrix[0] -= lr * self.matrix[0].grad
+        self.matrix[0].grad_zero_() 
+        return y_pred
+        
+    def train(self, x, y, n_iter, batch_size):
+        for epoch, X, Y in range(n_iter) , x, y:
+            y_pred = self.backward(X, Y) # back propogate once
+            print(f'epoch {epoch+1},  prediction:{y_pred}')
+            
+    
+    
+
+
+def main():
+    
+    
+    
+=======
+>>>>>>> f678b7b5ad26eca9401944a1c15c8bf6c386e290
         calc = torch.matmul(vector_inputs, self.matrix)
         return calc
     def loss(self, y_pred, y):
@@ -272,6 +359,7 @@ def main():
         
         
 
+>>>>>>> 35fe4bffd882a49526469ea8be846cb5f856d695
 
 if __name__ == "__main__":
     main()
