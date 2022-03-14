@@ -88,9 +88,8 @@ class ANN:
         return matrix , l
     #foreward the model
     def foreward(self, vector_inputs):
-        AF = activation_functions()
         calc = torch.matmul(vector_inputs, self.matrix)
-        return AF.softmax(calc)
+        return calc
     def loss(self, y_pred, y):
         sum = torch.sum(torch.matmul(y , torch.log(y_pred))) * -1
         return sum
@@ -100,10 +99,10 @@ class ANN:
         
 
         
-    def train(self, epoch, lr, inputs, y,batch):
+    def train(self, epoch, lr, y):
             #prep data
             #loop
-            for i in range(epoch):
+            for batch in epoch:
                 count = 0
                 correct = 0
                 #prep batch
@@ -123,7 +122,143 @@ class ANN:
                         count += 1
                         if(self.matrix_error(y_pred, y)):
                             correct += 1
-            print(f'epoch {i+1}, accuracy: {correct/ count}')
+            print(f'accuracy: {correct/ count}')
+
+
+class RNN(ANN):
+    def __init__(self, num_inputs, num_output):
+        super().__init__([[]], num_inputs + num_output[0], num_output)
+    def train(self, epoch, lr, inputs, y , batch):
+        first_input_addition = torch.randn(self.num_outputs, dtype=torch.float32)
+        for i in range(epoch):
+                count = 0
+                correct = 0
+                #prep batch
+                for sample, y_res in zip(batch):
+                    #foreward
+                    #split to word
+                    words_samples = sample.split(' ')
+                    #convert to vector using word of vector
+                    ### TO DO
+                    y_pred = []
+                    temp = first_input_addition
+                    for index in range(len(words_samples)):
+                        run_sample = torch.cat([y_pred[index],temp]) # conctrate the vectors
+                        temp = self.foreward(run_sample) #run the model and save it for the next run
+                        y_pred.append(temp) # add it to the prediction
+                    ##transform the list of y_pred to a single vector for the loss computation
+                    ####TO DO
+                    ##transform the y_res to a vector
+                    #calc loss 
+                    loss = self.loss(y_pred, y_res)
+                    #backward
+                    loss.backward()
+                    with torch.no_grad():
+                        self.matrix -= lr * self.matrix.grad
+                    self.matrix.grad.zero_()
+                    #print epoch
+                    with torch.no_grad():
+                        count += 1
+                        if(self.matrix_error(y_pred, y)):
+                            correct += 1
+                print(f'epoch {i+1}, accuracy: {correct/ count}')
+
+
+class LSTM:
+    def __init__(self, num_inputs, num_outputs, size_cell=64):
+        self.num_output = num_outputs
+        self.cell = torch.zeros(size_cell)
+        self.forget_gate = ANN([[]], num_inputs + num_outputs, [size_cell, 10])
+        self.add_gate_classify = ANN([[]], num_inputs + num_outputs, [size_cell, 10])
+        self.add_gate_data = ANN([[]], num_inputs + num_outputs, [size_cell, 10])
+        self.gate_out = ANN([[]], num_inputs + num_outputs, [num_outputs, 10])
+        self.cell_to_out = ANN([[]], size_cell, [num_outputs, 10])
+    def foreward(self, last_output, vector_inputs):
+        AF = activation_functions()
+        #concerate
+        final_input_vector = torch.cat(vector_inputs, last_output)
+
+        #step 1: forget gatגק
+        #pass it through the gorget gate and apply sigmoid on the result
+        forget_vector = self.forget_gate.foreward(final_input_vector)
+        #apply sigmoid on the result
+        forget_vector = AF.sigmoid(forget_vector)
+        #multuply it by the cell
+        self.cell = torch.matmul(self.cell, forget_vector)
+
+        #step 2 - adding to cell
+        #chose which data to add - multiply ANN and apply sigmoid
+        adding_classify = self.add_gate_classify.foreward(final_input_vector)
+        adding_classify = AF.sigmoid(adding_classify)
+        #process the data with tanh
+        new_cell_data = self.add_gate_data.foreward(final_input_vector)
+        new_cell_data = AF.tanh(new_cell_data)
+
+        #mutiply the vectors and it to the cell
+        new_cell_data = torch.matmul(new_cell_data, adding_classify)
+        self.cell = self.cell + new_cell_data
+
+        #step 3 - process the vector and the cell and return the result
+        #process the cell
+        process_cell = self.cell_to_out.foreward(self.cell)
+        process_cell = AF.tanh(process_cell)
+        process_input_vector = self.gate_out.foreward(final_input_vector)
+        process_input_vector = AF.sigmoid(process_input_vector)
+        #multiply them
+        ret_value = torch.matmul(process_cell, process_input_vector)
+        return ret_value
+
+
+    def train(self, dataset, lr):
+        #prep data
+        static_sample = torch.rand(self.num_output)
+        #loop
+        AF = activation_functions()
+        epoch_count = 1
+        for epoch in dataset:
+            count = 0
+            correct = 0
+            loss_total = 0
+            #prep batch
+            for batch in epoch:
+                loss = torch.zeros(1)
+                temp = static_sample
+                for sample in batch:
+                    #foreward
+                    final_vector = torch.concat(temp, sample[0])
+                    temp = self.foreward(final_vector)
+                    temp = AF.softmax(temp)
+                    #calc loss
+                    loss += self.loss(temp, sample[1])
+                    loss_total += loss.item()
+
+                    with torch.no_grad():
+                        count += 1
+                        if(self.matrix_error(temp, sample[1])):
+                            correct += 1  
+                #backward
+                loss /= len(epoch[0])
+                loss.backward()
+                with torch.no_grad():
+                    self.forget_gate.matrix[0] -= lr * self.forget_gate.matrix[0].grad
+                    self.add_gate_classify.matrix[0] -= lr * self.forget_gate.matrix[0].grad
+                    self.add_gate_data.matrix[0] -= lr * self.forget_gate.matrix[0].grad
+                    self.cell_to_out.matrix[0] -= lr * self.forget_gate.matrix[0].grad
+                    self.gate_out.matrix[0] -= lr * self.forget_gate.matrix[0].grad
+                #print("loss: ", loss)
+
+                self.matrix[0].grad.zero_()
+                  
+            print(f'epoch {epoch_count}, accuracy: {correct/ count}, average loss: {loss_total / (len(epoch) * len(epoch[0]))}')
+            epoch_count += 1
+
+ 
+        
+
+
+
+        
+
 
 
 
@@ -131,54 +266,10 @@ class ANN:
 
 
 def main():
-    #load data
-    df = pd.read_csv('features.csv')
-    output = df.output
-    df = df.drop(columns=["index", "query", "output"])    
-    final_list = []
-    for i in output:
-        if i == "SEARCH":
-            final_list.append(torch.tensor([1.0,0.0,0.0,0.0,0.0], dtype=torch.float32))
-        elif i == "GET_MESSAGE":
-            final_list.append(torch.tensor([0.0,1.0,0.0,0.0,0.0], dtype=torch.float32))
-        elif i == "SEND_MESSAGE":
-            final_list.append(torch.tensor([0.0,0.0,1.0,0.0,0.0], dtype=torch.float32))
-        elif i == "GetWeather":
-            final_list.append(torch.tensor([0.0,0.0,0.0,1.0,0.0], dtype=torch.float32))
-        else:
-            final_list.append(torch.tensor([0.0,0.0,0.0,0.0,1.0], dtype=torch.float32))
-    print(len(df))
-    print(len(final_list))
-    final_db = []
-    from sklearn.utils import shuffle
-    epoch_list = []
-    for _ in range(100):
-        df = shuffle(df)
-        count = 0
-        epoch_list = []
-        batch_list = []
-        for sample, output in zip(df.itertuples(), final_list):
-            count += 1
-            batch_list.append([sample, output])
-            if count % 64 == 0:
-                count = 0
-                epoch_list.append(batch_list)
-                batch_list = []
-        final_db.append(epoch_list)
-        epoch_list = []
-    print(final_db)
+    x = torch.tensor([1,2,3])
+    y = torch.tensor([3,2,1])
+    print(x + y)            
         
-    
-
-
-            
-            
-
-
-
-
-
-
         
 
 
