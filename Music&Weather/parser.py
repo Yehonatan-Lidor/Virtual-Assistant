@@ -1,24 +1,23 @@
+from nltk.stem import WordNetLemmatizer
+from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
+import pickle
+import numpy as np
+import truecase
+from spacy import displacy
+import spacy
 import pandas as pd
 import nltk
 import warnings
 warnings.filterwarnings("ignore")
-import spacy
-from spacy import displacy
-import truecase
-import numpy as np
-import tensorflow as tf
 
-from sklearn.preprocessing import StandardScaler
-import pickle
-from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize
-from nltk.stem import WordNetLemmatizer
 
 nltk.download('averaged_perceptron_tagger')
 nltk.download('stopwords')
 nltk.download('punkt')
 nltk.download('wordnet')
 nltk.download('omw-1.4')
+
 
 class parser:
     def __init__(self, df):
@@ -35,11 +34,19 @@ class parser:
         self.sendList = x[3]
         """
 
-        self.getList = ['world', 'maine', 'thread', 'display', 'launch', 'pull', 'view', 'yesterday', 'sent', 'today', 'group', 'read', 'new', 'show', 'request', 'chat']
-        self.weatherList = ['second', 'cold', 'hour', 'chilly', 'island', 'one', '1', 'warm', 'colder', 'area', 'hot', 'pm', 'minute', 'national', 'week', 'state', 'park', 'current', 'like', 'forecast', 'weather']
-        self.musicList = ['spotify', 'youtube', 'deezer', 'use', 'listen', 'lastfm', 'groove', 'shark', 'zvooq', 'tune', 'twenty', 'itunes', 'netflix', 'google', 'top', 'album', 'playlist', 'track', 'hear', 'song', 'music', 'play']
-        self.sendList = ['dinner', 'start', 'birthday', 'tonight', 'tomorrow', 'house', 'late', 'time', 'mom', 'party', 'meet', 'asking', 'let', 'know', 'ask', 'send']
-    def tests(self): 
+        self.getList = ['world', 'maine', 'thread', 'display', 'launch', 'pull', 'view',
+                        'yesterday', 'sent', 'today', 'group', 'read', 'new', 'show', 'request', 'chat']
+        self.weatherList = ['second', 'cold', 'hour', 'chilly', 'island', 'one', '1', 'warm', 'colder', 'area',
+                            'hot', 'pm', 'minute', 'national', 'week', 'state', 'park', 'current', 'like', 'forecast', 'weather']
+        self.musicList = ['spotify', 'youtube', 'deezer', 'use', 'listen', 'lastfm', 'groove', 'shark', 'zvooq', 'tune',
+                          'twenty', 'itunes', 'netflix', 'google', 'top', 'album', 'playlist', 'track', 'hear', 'song', 'music', 'play']
+        self.sendList = ['dinner', 'start', 'birthday', 'tonight', 'tomorrow', 'house',
+                         'late', 'time', 'mom', 'party', 'meet', 'asking', 'let', 'know', 'ask', 'send']
+        with open('modelDTC.pkl', 'rb') as f:
+            clf2 = pickle.load(f)
+            self.model = clf2
+
+    def tests(self):
         x = self.getMostCommonList()
         print(x)
         print('""""""""""""""""""""')
@@ -65,61 +72,63 @@ class parser:
 
             item = []
             item.append(i[3])
-            #ExclamationMark
+            # ExclamationMark
             if self.isThereExclamationMark(i[3]) == True:
                 item.append(1)
             else:
                 item.append(0)
-            #QuestionMark
+            # QuestionMark
             if self.isThereQuestionMark(i[3]) == True:
                 item.append(1)
             else:
                 item.append(0)
-            #countWords
+            # countWords
             item.append(self.getHowManyWords(i[3]))
-            #countChars
+            # countChars
             item.append(self.getHowManyChars(i[3]))
-            #questions 
+            # questions
             item += self.check_question(i[3])
-            #count am-is-are
+            # count am-is-are
             item.append(self.count_am_is_are(i[3]))
-            #count stop words
+            # count stop words
             item.append(self.count_stop_words(i[3]))
-            #count enteties
+            # count enteties
             item += self.count_entities(i[3], ner)
-            #common words
+            # common words
             item += self.commonWords(i[3])
 
-            #part tag:
+            # part tag:
             tags = self.getPartTag(i[3])
-            #add verb
+            # add verb
             item.append(tags["VRB"])
-            #add adj
+            # add adj
             item.append(tags["ADJ"])
-            #add noun
+            # add noun
             item.append(tags["NON"])
 
-            #count tell and going
+            # count tell and going
             val = i[3].lower().count('tell') + i[3].lower().count('going')
             item.append(val)
 
-            #count text and message and please and see
-            val = i[3].lower().count('tell') + i[3].lower().count('going') + + i[3].lower().count('see') # +i[3].lower().count('message')
+            # count text and message and please and see
+            val = i[3].lower().count('tell') + i[3].lower().count('going') + + \
+                i[3].lower().count('see')  # +i[3].lower().count('message')
             item.append(val)
 
-
-            #output
+            # output
             item.append(i[2])
 
             data.append(item)
         return data
-    def check_question(self,sentence):
-        QUESTIONS = ("how", "when", "where", "what", "whose", "which", "why", "who")
-        question_list = [] 
+
+    def check_question(self, sentence):
+        QUESTIONS = ("how", "when", "where", "what", "which", "why", "who")
+        question_list = []
         sentence = sentence.lower()
         for i in range(len(QUESTIONS)):
             question_list.append(int(QUESTIONS[i] in sentence))
         return question_list
+
     def count_am_is_are(self, sentence):
         WORDS = ("am", "is", "are", "s", "m")
         sentence_lst = sentence.split(' ')
@@ -128,22 +137,25 @@ class parser:
             if word in WORDS:
                 count += 1
         return count
+
     def count_stop_words(self, sentence):
         return sum([word in stopwords.words('english') for word in sentence.split(' ')])
+
     def count_entities(self, sentence, ner=spacy.load("en_core_web_sm")):
         txt = ner(truecase.get_true_case(sentence))
         entities = [0, 0, 0, 0]
         ENTITIES_LABELS = {"PERSON": 0, "ORG": 1, "GPE": 2, "DATE": 3}
         for word in txt.ents:
             if word.label_ == "PERSON":
-                entities[0] +=1
+                entities[0] += 1
             elif word.label_ == "ORG":
-                entities[1] +=1
+                entities[1] += 1
             elif word.label_ == "GPE":
-                entities[2] +=1
+                entities[2] += 1
             elif word.label_ == "DATE":
-                entities[3] +=1
+                entities[3] += 1
         return entities
+
     def getMostCommonList(self):
         weather = {}
         music = {}
@@ -189,7 +201,7 @@ class parser:
                         if word.lower() in search.keys():
                             search[word.lower()] += 1
                         else:
-                            search[word.lower()] = 1                        
+                            search[word.lower()] = 1
         temp_music = dict(sorted(music.items(), key=lambda item: item[1]))
         temp_music = list(temp_music)[-24:]
         temp_weather = dict(sorted(weather.items(), key=lambda item: item[1]))
@@ -203,29 +215,29 @@ class parser:
 
         final_music = []
         for i in temp_music:
-            if i not in temp_get and  i not in temp_weather and i not in temp_send:
+            if i not in temp_get and i not in temp_weather and i not in temp_send:
                 final_music.append(i)
 
         final_weather = []
         for i in temp_weather:
-            if i not in temp_get and  i not in temp_music and i not in temp_send:
+            if i not in temp_get and i not in temp_music and i not in temp_send:
                 final_weather.append(i)
-
 
         final_get = []
         for i in temp_get:
-            if i not in temp_music and  i not in temp_weather and i not in temp_send:
+            if i not in temp_music and i not in temp_weather and i not in temp_send:
                 final_get.append(i)
-        
+
         final_send = []
         for i in temp_send:
-            if i not in temp_get and  i not in temp_weather and i not in temp_music:
+            if i not in temp_get and i not in temp_weather and i not in temp_music:
                 final_send.append(i)
 
+        return [final_music, final_weather, final_get, final_send]
 
-        return [final_music, final_weather, final_get , final_send]
     def getHowManyWords(self, query):
         return len(query.split(' '))
+
     def getHowManyChars(self, query):
         return len(query)
 
@@ -244,99 +256,92 @@ class parser:
             elif i[1] in NON:
                 ret['NON'] += 1
         return ret
-    def getFilteredText(self,query):
-        stop_words = set(stopwords.words('english')) 
+
+    def getFilteredText(self, query):
+        stop_words = set(stopwords.words('english'))
         word_tokens = word_tokenize(query)
-        #remove punck
+        # remove punck
         words = nltk.word_tokenize(query.lower())
-        word_tokens= [word for word in words if word.isalnum()]
-        #remove stop words
-        filtered_sentence = [w for w in word_tokens if not w.lower() in stop_words]
+        word_tokens = [word for word in words if word.isalnum()]
+        # remove stop words
+        filtered_sentence = [
+            w for w in word_tokens if not w.lower() in stop_words]
         wnl = WordNetLemmatizer()
         lemmatized_words = []
         for word in filtered_sentence:
             lemmatized_words.append(wnl.lemmatize(word))
-            
+
         return lemmatized_words
+
     def isThereQuestionMark(self, query):
         if '?' in query:
             return True
         return False
+
     def isThereExclamationMark(self, query):
         if '!' in query:
             return True
         return False
+
     def commonWords(self, query):
-        #weather
+        # weather
         countWeather = 0
         for i in query.split(' '):
             if i in self.weatherList:
                 countWeather += 1
-        #music
+        # music
         countMusic = 0
         for i in query.split(' '):
             if i in self.musicList:
                 countMusic += 1
-        #send
+        # send
         countSend = 0
         for i in query.split(' '):
             if i in self.sendList:
                 countSend += 1
-        #get
+        # get
         countGet = 0
         for i in query.split(' '):
             if i in self.getList:
                 countGet += 1
         return [countMusic, countWeather, countGet, countSend]
-    def run_model(self, query,sc, new_model, ner = spacy.load("en_core_web_lg")):
-        #create array data
+
+    def run_model(self, query, ner=spacy.load("en_core_web_lg")):
+        # create array data
         item = []
-        #ExclamationMark
-        if self.isThereExclamationMark(query) == True:
-            item.append(1)
-        else:
-            item.append(0)
-        #QuestionMark
-        if self.isThereQuestionMark(query) == True:
-            item.append(1)
-        else:
-            item.append(0)
-        #countWords
+        # countWords
         item.append(self.getHowManyWords(query))
-        #questions 
+        # questions
         item += self.check_question(query)
-        #count enteties
+        # count enteties
         item += self.count_entities(query, ner)
-        #common words
+        # common words
         item += self.commonWords(query)
 
-        #part tag:
+        # part tag:
         tags = self.getPartTag(query)
-        #add verb
+        # add verb
         item.append(tags["VRB"])
-        #add adj
+        # add adj
         item.append(tags["ADJ"])
-        #add noun
+        # add noun
         item.append(tags["NON"])
 
-        #count tell and going
-        val = query.lower().count('tell') + query.lower().count('going')
-        item.append(val)
+        # count tell and going
+        #val = query.lower().count('tell') + query.lower().count('going')
+        # item.append(val)
 
-        #count text and message and please and see
-        val = query.lower().count('tell') + query.lower().count('going')  + query.lower().count('see') # +  query.lower().count('message')
-        item.append(val)
-        
+        # count text and message and please and see
+       # val = query.lower().count('tell') + query.lower().count('going')  + query.lower().count('see') # +  query.lower().count('message')
+        # item.append(val)
 
         a = np.array(item)
         a = a.astype('float32')
-        a = sc.transform([a])
-        print(a)
-        #train the model
-        res = new_model.predict(a)
+        # train the model
+        res = self.model.predict(a)
         res = res[0]
         sum = 0.0
-        count = 0 
+        count = 0
         biggest = res[0]
         choose = 0
         for i in res:
@@ -349,31 +354,25 @@ class parser:
         if choose == 0:
             return "SEARCH"
         elif choose == 1:
-            return "GET_MESSAGE"
-        elif choose == 2:
-            return "SEND_MESSAGE"
-        elif choose == 3:
             return "GetWeather"
         else:
             return "PlayMusic"
-
-
 
 
 def main():
     ner = spacy.load("en_core_web_lg")
     new_model = tf.keras.models.load_model('saved_model/my_model')
     sc = StandardScaler()
-    sc = pickle.load(open('scaler.pkl','rb'))
+    sc = pickle.load(open('scaler.pkl', 'rb'))
     df = pd.read_csv('aug_final_dataset.csv')
-    #def run_model(self, query,sc, new_model, ner = spacy.load("en_core_web_lg")):
+    # def run_model(self, query,sc, new_model, ner = spacy.load("en_core_web_lg")):
     text = ""
     print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
     text = str(input('Enter a question: \n'))
     x = parser(df)
     while(text != "EXIT"):
         print(text)
-        print(x.run_model(text,sc,new_model,ner))
+        print(x.run_model(text, sc, new_model, ner))
         text = str(input('Enter a question:'))
     """
     list_frame = x.create_table()
@@ -384,9 +383,6 @@ def main():
                "count am-is-are", "count stop words", "PERSON", "ORG", "GPE", "DATE", "count music common", "count weather common" ,"count get common", "count send common" , "VRB", "ADJ","NON","common_t_g","common_s_p_m_t", "output"])
     df.to_csv('features_f.csv')"""
 
+
 if __name__ == "__main__":
     main()
-    
-
-
-
